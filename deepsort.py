@@ -175,8 +175,8 @@ class deepsort_rbc():
 		if len(features.shape)==1:
 			features = np.expand_dims(features,0)
 
-		dets = [(Detection(bbox, score, feature,label)) \
-					for bbox,score,feature,label in\
+		dets = [(Detection(bbox, score, feature, label)) \
+					for bbox,score,feature, label in\
 				zip(detections,out_scores,features,out_labels)]
 		
 		#print(dets)
@@ -189,10 +189,10 @@ class deepsort_rbc():
 		self.tracker.predict()
 		matched_labels = self.tracker.update(dets)	
 		
-		print(dets)
-		print(self.tracker.tracks)
+		#print(dets)
+		#print(self.tracker.tracks)
 
-		return self.tracker,dets, matched_labels
+		return self.tracker, dets, matched_labels
 
 
 

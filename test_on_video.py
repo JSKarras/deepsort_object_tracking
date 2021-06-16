@@ -93,7 +93,7 @@ if __name__ == '__main__':
 	h  = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) 
 
 	# Store tracks to BDD-formatted JSON
-	tracks = []
+	preds = []
 	bdd_categories = ['pedestrian', 'rider', 'car', 'bus', 'truck', 'train', 'motorcycle', 'bicycle']
 
 	#Initialize deep sort.
@@ -123,7 +123,7 @@ if __name__ == '__main__':
 		labels = np.array(labels)
 
 		tracker,detections_class,detection_labels = deepsort.run_deep_sort(frame,out_scores,detections,labels)
-		print(detection_labels)
+
 		# Store this frame's tracks in BDD-format
 		frame_obj = {}
 		frame_obj['video_name'] = os.path.basename(videopath).strip('.mp4')
@@ -131,42 +131,39 @@ if __name__ == '__main__':
 		frame_obj['index'] = frame_id 
 		frame_obj['labels'] = []
 
-		for j in range(len(tracker.tracks)):     
-			track = tracker.tracks[j]  
-			try: 
-			  label = detection_labels[j]
-			except Exception as e:
-			  label = 'No label found'
+		tracker_idx = 0
+		for track in tracker.tracks:          
 			if not track.is_confirmed() or track.time_since_update > 1:
-				continue
+			  continue             
 
 			bbox = track.to_tlbr() # Get the corrected/predicted bounding box
 			id_num = str(track.track_id) #Get the ID for the particular track.			
 			features = track.features #Get the feature vector corresponding to the detection.
 			
       # Write to to JSON
-			if label in bdd_categories: # filter out non-BDD objects
+			if track.label.lower() in bdd_categories: # filter out non-BDD objects
 				box2d = {"x1": int(bbox[0]), "y1": int(bbox[1]), "x2": int(bbox[2]), "y2": int(bbox[3])}
-				label_obj = {'id': id_num, 'category': label, 'attributes':{}, 'box2d': box2d}
+				label_obj = {'id': id_num, 'category': track.label.lower(), 'attributes':{}, 'box2d': box2d}
 				frame_obj['labels'].append(label_obj)
 	
 			#Draw bbox from tracker.
+			#tracker_idx.append(j)
 			cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])),(255,255,255), 2)
 			#cv2.putText(frame, str(id_num),(int(bbox[0]), int(bbox[1])),0, 5e-3 * 200, (0,255,0),2)
-			cv2.putText(frame, label, (int(bbox[0]), int(bbox[1])), 0, 5e-3 * 200, (255,255,0), 1)
+			cv2.putText(frame, track.label, (int(bbox[0]), int(bbox[1])), 0, 5e-3 * 200, (255,255,0), 1)
 
-			#Draw bbox from detector. Just to compare.
-			#for det in detections_class:
-				#bbox = det.to_tlbr()
-				#cv2.rectangle(frame,(int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])),(255,255,0), 2)
-		
-		tracks.append(frame_obj)
+		#Draw bbox from detector. Just to compare.
+		#for det in detections_class:
+			#bbox = det.to_tlbr()
+			#cv2.rectangle(frame,(int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])),(255,255,0), 2)   				
+
+		preds.append(frame_obj)
 		out.write(frame)
 		cv2.imwrite('/content/tracked_frames/frame'+str(frame_id)+'.jpg', frame)
 		if cv2.waitKey(1) & 0xFF == ord('q'):
 			break
 		frame_id+=1
 
-	filename = os.name.basename(videopath).strip('.mp4') + '.json' #+ '_bdd100k_preds.json'
+	filename = 'b1c9c847-3bda4659.json' #+ '_bdd100k_preds.json'
 	with open('/content/'+filename, 'w') as outfile:
-		json.dump(tracks, outfile) 
+		json.dump(preds, outfile) 
