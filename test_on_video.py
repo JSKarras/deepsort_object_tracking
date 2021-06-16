@@ -101,9 +101,6 @@ if __name__ == '__main__':
 
 	frame_id = 1
 
-	fourcc = cv2.VideoWriter_fourcc(*'XVID')
-	out = cv2.VideoWriter('/content/deepsort_tracking.mp4',fourcc, 10.0, (w,h))
-
 	for framepath in framespaths:
 		frame = cv2.imread(framepath)
 		framename = os.path.basename(framepath.strip('.json'))
@@ -141,13 +138,15 @@ if __name__ == '__main__':
 			features = track.features #Get the feature vector corresponding to the detection.
 			
       # Write to to JSON
-			if track.label.lower() in bdd_categories: # filter out non-BDD objects
+			label = track.label.lower().strip()
+			if label in bdd_categories: # filter out non-BDD objects
 				box2d = {"x1": int(bbox[0]), "y1": int(bbox[1]), "x2": int(bbox[2]), "y2": int(bbox[3])}
-				label_obj = {'id': id_num, 'category': track.label.lower(), 'attributes':{}, 'box2d': box2d}
+				label_obj = {'id': id_num, 'category': label, 'attributes':{}, 'box2d': box2d}
 				frame_obj['labels'].append(label_obj)
-	
+			else:
+				print("Not in BDD: ", label)
+        
 			#Draw bbox from tracker.
-			#tracker_idx.append(j)
 			cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])),(255,255,255), 2)
 			#cv2.putText(frame, str(id_num),(int(bbox[0]), int(bbox[1])),0, 5e-3 * 200, (0,255,0),2)
 			cv2.putText(frame, track.label, (int(bbox[0]), int(bbox[1])), 0, 5e-3 * 200, (255,255,0), 1)
@@ -158,7 +157,6 @@ if __name__ == '__main__':
 			#cv2.rectangle(frame,(int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])),(255,255,0), 2)   				
 
 		preds.append(frame_obj)
-		out.write(frame)
 		cv2.imwrite('/content/tracked_frames/frame'+str(frame_id)+'.jpg', frame)
 		if cv2.waitKey(1) & 0xFF == ord('q'):
 			break
