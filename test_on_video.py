@@ -14,6 +14,8 @@ import torch.nn as nn
 from torch import optim
 import torch.nn.functional as F
 import cv2,pickle,sys
+import glob
+import os
 
 from deepsort import *
 
@@ -76,35 +78,31 @@ def get_mask(filename):
 if __name__ == '__main__':
 	
 	#Load detections for the video. Options available: yolo,ssd and mask-rcnn
-	filename = 'det/det_ssd512.txt'
+	filename = '/content/yolo_det.txt' #'det/det_ssd512.txt'
 	gt_dict = get_dict(filename)
 
-	cap = cv2.VideoCapture('vdo.avi')
+	videopath = '/content/b1c9c847-3bda4659.mp4' #'vdo.avi'
+	framespath = '/content/drive/MyDrive/Colab Notebooks/BDD100k Benchmark/bdd100k/images/track/val/b1c9c847-3bda4659'
+	framepaths = [str(framepath) for framepath in glob.glob(os.path.join(framespath,'*'))]
+	framespaths = sorted(framepaths)
+	cap = cv2.VideoCapture(videopath)
+	ret,frame = cap.read()
 
-	#an optional mask for the given video, to focus on the road. 
-	mask = get_mask('roi.jpg')
+	w  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))  
+	h  = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) 
 
 	#Initialize deep sort.
-	deepsort = deepsort_rbc()
+	deepsort = deepsort_rbc(wt_path='ckpts/model640.pt')
 
 	frame_id = 1
 
-	mask = np.expand_dims(mask,2)
-	mask = np.repeat(mask,3,2)
-
 	fourcc = cv2.VideoWriter_fourcc(*'XVID')
-	out = cv2.VideoWriter('ssd_out_3.avi',fourcc, 10.0, (1920,1080))
+	out = cv2.VideoWriter('/content/deepsort_tracking.mp4',fourcc, 10.0, (w,h))
 
-
-	while True:
+	for framepath in framespaths:
+		frame = cv2.imread(framepath)
 		print(frame_id)		
-
-		ret,frame = cap.read()
-		if ret is False:
-			frame_id+=1
-			break	
-
-		frame = frame * mask
+		
 		frame = frame.astype(np.uint8)
 
 		detections,out_scores = get_gt(frame,frame_id,gt_dict)
@@ -136,8 +134,11 @@ if __name__ == '__main__':
 				bbox = det.to_tlbr()
 				cv2.rectangle(frame,(int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])),(255,255,0), 2)
 		
-		cv2.imshow('frame',frame)
+		#cv2.imshow('frame',frame)
 		out.write(frame)
+		cv2.imwrite('/content/tracked_frames/frame'+str(frame_id)+'.jpg', frame)
+		#print('/content/tracked_frames/frame'+str(frame_id)+'.jpg')
+
 		if cv2.waitKey(1) & 0xFF == ord('q'):
 			break
 
