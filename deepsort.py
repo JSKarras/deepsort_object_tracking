@@ -187,12 +187,12 @@ class deepsort_rbc():
 		dets = [dets[i] for i in indices]
 
 		self.tracker.predict()
-		self.tracker.update(dets)	
+		matched_labels = self.tracker.update(dets)	
 		
 		print(dets)
 		print(self.tracker.tracks)
 
-		return self.tracker,dets
+		return self.tracker,dets, matched_labels
 
 
 
